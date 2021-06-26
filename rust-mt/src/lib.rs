@@ -1,4 +1,7 @@
 use std::sync::atomic::{AtomicU32, Ordering};
+use std::thread;
+use std::sync::Arc;
+
 
 #[no_mangle]
 pub extern "C" fn print_hello() {
@@ -11,6 +14,8 @@ fn update(s: &AtomicU32) {
     for _n in 0..10000000 {
         s.fetch_add(1, Ordering::Relaxed);
     }
+
+    assert_eq!(s.load(Ordering::SeqCst), 10000000);
 }
 
 //
@@ -26,6 +31,69 @@ pub extern "C" fn single_thread_rs() {
     update(&b);
     update(&c);
     update(&d);
+}
+
+//
+#[no_mangle]
+pub extern "C" fn multi_thread_rs() {
+    let a = AtomicU32::new(0);
+    let b = AtomicU32::new(0);
+    let c = AtomicU32::new(0);
+    let d = AtomicU32::new(0);
+
+    // Update 4 variables on different threads.
+    let t1 = thread::spawn(move || {
+        update(&a);
+    });
+    let t2 = thread::spawn(move || {
+        update(&b);
+    });
+    let t3 = thread::spawn(move || {
+        update(&c);
+    });
+    let t4 = thread::spawn(move || {
+        update(&d);
+    });
+
+    t1.join().unwrap();
+    t2.join().unwrap();
+    t3.join().unwrap();
+    t4.join().unwrap();
+
+    //assert_eq!(a.load(Ordering::SeqCst), 10000000);
+    //assert_eq!(b.load(Ordering::SeqCst), 10000000);
+    //assert_eq!(c.load(Ordering::SeqCst), 10000000);
+    //assert_eq!(d.load(Ordering::SeqCst), 10000000);
+
+}
+
+//
+#[no_mangle]
+pub extern "C" fn multi_thread_arc_rs() {
+    let a = Arc::new(AtomicU32::new(0));
+    let b = Arc::new(AtomicU32::new(0));
+    let c = Arc::new(AtomicU32::new(0));
+    let d = Arc::new(AtomicU32::new(0));
+
+
+    // Update 4 variables on different threads.
+    let t1 = thread::spawn(move || {
+        update(&a);
+    });
+    let t2 = thread::spawn(move || {
+        update(&b);
+    });
+    let t3 = thread::spawn(move || {
+        update(&c);
+    });
+    let t4 = thread::spawn(move || {
+        update(&d);
+    });
+
+    t1.join().unwrap();
+    t2.join().unwrap();
+    t3.join().unwrap();
+    t4.join().unwrap();
 
     assert_eq!(a.load(Ordering::SeqCst), 10000000);
     assert_eq!(b.load(Ordering::SeqCst), 10000000);
@@ -33,3 +101,4 @@ pub extern "C" fn single_thread_rs() {
     assert_eq!(d.load(Ordering::SeqCst), 10000000);
 
 }
+

@@ -319,6 +319,8 @@ static void bench_multiT_percore(benchmark::State &state) {
 }
 BENCHMARK(bench_multiT_percore)->UseRealTime()->Unit(benchmark::kMillisecond);
 
+// Rust
+
 static void bench_rust_hello(benchmark::State &state) {
     for (auto _ : state)
         print_hello();
@@ -330,6 +332,18 @@ static void bench_singleT_rs(benchmark::State &state) {
         single_thread_rs();
 }
 BENCHMARK(bench_singleT_rs)->UseRealTime()->Unit(benchmark::kMillisecond);
+
+static void bench_multiT_rs(benchmark::State &state) {
+    for (auto _ : state)
+        multi_thread_rs();
+}
+BENCHMARK(bench_multiT_rs)->UseRealTime()->Unit(benchmark::kMillisecond);
+
+static void bench_multiT_arc_rs(benchmark::State &state) {
+    for (auto _ : state)
+        multi_thread_arc_rs();
+}
+BENCHMARK(bench_multiT_arc_rs)->UseRealTime()->Unit(benchmark::kMillisecond);
 
 
 // Run the benchmark
