@@ -2,6 +2,7 @@
 #include <thread>
 #include <atomic>
 #include <benchmark/benchmark.h>
+#include "rust-mt-lib.h"
 
 
 using namespace std;
@@ -9,17 +10,18 @@ using namespace std;
 // Pad extra bytes so that each variable will take place of the whole cache line
 struct alignas(64) padded_atomic_int {
     atomic<int> value;
+
     padded_atomic_int() { value = 0; }
 };
 
 
 //
-void helloFunction(){
+void helloFunction() {
     std::cout << "Hello C++11 from function." << endl;
 }
 
 //
-class HelloFunctionObject  {
+class HelloFunctionObject {
 public:
     void operator()() const {
         std::cout << "Hello C++11 from a function object." << endl;
@@ -52,10 +54,10 @@ void multi_thread_false() {
     a = b = c = d = 0;
 
     // Assign each atomic<int> to each thread
-    std::thread t1([&]() {update(a);});
-    std::thread t2([&]() {update(b);});
-    std::thread t3([&]() {update(c);});
-    std::thread t4([&]() {update(d);});
+    std::thread t1([&]() { update(a); });
+    std::thread t2([&]() { update(b); });
+    std::thread t3([&]() { update(c); });
+    std::thread t4([&]() { update(d); });
 
     // Join the 4 threads
     t1.join();
@@ -128,13 +130,30 @@ void optimal_scheduling() {
 
     // Bind thread 0 and thread 1 to core 0
     pthread_attr_setaffinity_np(&attr1, sizeof(cpu_set_t), &cpu_set_1);
-    pthread_create(&threads[0], &attr1, [](void *a) -> void* { update((*reinterpret_cast<padded_atomic_int*>(a)).value); }, &a);
-    pthread_create(&threads[1], &attr1, [](void *a) -> void* { update((*reinterpret_cast<padded_atomic_int*>(a)).value); }, &a);
+    pthread_create(&threads[0], &attr1,
+                   [](void *a) -> void * {
+                       update((*reinterpret_cast<padded_atomic_int *>(a)).value);
+                       return 0;
+                   }, &a);
+    pthread_create(&threads[1], &attr1,
+                   [](void *a) -> void * {
+                       update((*reinterpret_cast<padded_atomic_int *>(a)).value);
+                       return 0;
+                   }, &a);
 
     // Bind thread 2 and thread 3 to core 1
     pthread_attr_setaffinity_np(&attr2, sizeof(cpu_set_t), &cpu_set_2);
-    pthread_create(&threads[2], &attr2, [](void *b) -> void* { update((*reinterpret_cast<padded_atomic_int*>(b)).value); }, &b);
-    pthread_create(&threads[3], &attr2, [](void *b) -> void* { update((*reinterpret_cast<padded_atomic_int*>(b)).value); }, &b);
+    pthread_create(&threads[2], &attr2,
+                   [](void *b) -> void * {
+                       update((*reinterpret_cast<padded_atomic_int *>(b)).value);
+                       return 0;
+                   }, &b);
+    pthread_create(&threads[3], &attr2,
+                   [](void *b) -> void * {
+                       update((*reinterpret_cast<padded_atomic_int *>(b)).value);
+                       return 0;
+
+                   }, &b);
 
     // Join threads
     void *status;
@@ -179,19 +198,35 @@ void percore_scheduling() {
 
     // Bind thread 0 to core 0
     pthread_attr_setaffinity_np(&attr1, sizeof(cpu_set_t), &cpu_set_1);
-    pthread_create(&threads[0], &attr1, [](void *a) -> void* { update((*reinterpret_cast<padded_atomic_int*>(a)).value); }, &a);
+    pthread_create(&threads[0], &attr1,
+                   [](void *a) -> void * {
+                       update((*reinterpret_cast<padded_atomic_int *>(a)).value);
+                       return 0;
+                   }, &a);
 
     // Bind thread 1 to core 1
     pthread_attr_setaffinity_np(&attr2, sizeof(cpu_set_t), &cpu_set_2);
-    pthread_create(&threads[1], &attr2, [](void *b) -> void* { update((*reinterpret_cast<padded_atomic_int*>(b)).value); }, &b);
+    pthread_create(&threads[1], &attr2,
+                   [](void *b) -> void * {
+                       update((*reinterpret_cast<padded_atomic_int *>(b)).value);
+                       return 0;
+                   }, &b);
 
     // Bind thread 2 to core 2
     pthread_attr_setaffinity_np(&attr3, sizeof(cpu_set_t), &cpu_set_3);
-    pthread_create(&threads[2], &attr3, [](void *c) -> void* { update((*reinterpret_cast<padded_atomic_int*>(c)).value); }, &c);
+    pthread_create(&threads[2], &attr3,
+                   [](void *c) -> void * {
+                       update((*reinterpret_cast<padded_atomic_int *>(c)).value);
+                       return 0;
+                   }, &c);
 
     // Bind thread 3 to core 3
     pthread_attr_setaffinity_np(&attr4, sizeof(cpu_set_t), &cpu_set_4);
-    pthread_create(&threads[3], &attr4, [](void *d) -> void* { update((*reinterpret_cast<padded_atomic_int*>(d)).value); }, &d);
+    pthread_create(&threads[3], &attr4,
+                   [](void *d) -> void * {
+                       update((*reinterpret_cast<padded_atomic_int *>(d)).value);
+                       return 0;
+                   }, &d);
 
     // Join threads
     void *status;
@@ -210,7 +245,7 @@ void various_thread() {
     std::thread t2(helloFunctionObject);
 
     // thread executing lambda function
-    std::thread t3([]{std::cout << "Hello C++11 from lambda function." << endl;});
+    std::thread t3([] { std::cout << "Hello C++11 from lambda function." << endl; });
 
     // ensure that t1, t2 and t3 have finished before main terminates
     t1.join();
@@ -242,47 +277,60 @@ void print() {
 }
 
 #if 1
-static void bench_singleT (benchmark::State& state) {
+
+static void bench_singleT(benchmark::State &state) {
     for (auto _ : state)
         single_thread();
 }
 //BENCHMARK(bench_singleT);
 BENCHMARK(bench_singleT)->UseRealTime()->Unit(benchmark::kMillisecond);
 
-static void bench_multiT_false(benchmark::State& state) {
+static void bench_multiT_false(benchmark::State &state) {
     for (auto _ : state)
         multi_thread_false();
 }
 //BENCHMARK(bench_multiT);
 BENCHMARK(bench_multiT_false)->UseRealTime()->Unit(benchmark::kMillisecond);
 
-static void bench_multiT_padded(benchmark::State& state) {
+static void bench_multiT_padded(benchmark::State &state) {
     for (auto _ : state)
         multi_thread_padding();
 }
 //BENCHMARK(bench_multiT);
 BENCHMARK(bench_multiT_padded)->UseRealTime()->Unit(benchmark::kMillisecond);
 
-static void bench_multiT_subopt(benchmark::State& state) {
+static void bench_multiT_subopt(benchmark::State &state) {
     for (auto _ : state)
         sub_optimal_scheduling();
 }
 //BENCHMARK(bench_multiT);
 BENCHMARK(bench_multiT_subopt)->UseRealTime()->Unit(benchmark::kMillisecond);
 
-static void bench_multiT_optimal(benchmark::State& state) {
+static void bench_multiT_optimal(benchmark::State &state) {
     for (auto _ : state)
         optimal_scheduling();
 }
 //BENCHMARK(bench_multiT);
 BENCHMARK(bench_multiT_optimal)->UseRealTime()->Unit(benchmark::kMillisecond);
 
-static void bench_multiT_percore(benchmark::State& state) {
+static void bench_multiT_percore(benchmark::State &state) {
     for (auto _ : state)
         percore_scheduling();
 }
-//BENCHMARK(bench_multiT);
 BENCHMARK(bench_multiT_percore)->UseRealTime()->Unit(benchmark::kMillisecond);
+
+static void bench_rust_hello(benchmark::State &state) {
+    for (auto _ : state)
+        print_hello();
+}
+BENCHMARK(bench_rust_hello)->UseRealTime()->Unit(benchmark::kMillisecond);
+
+static void bench_singleT_rs(benchmark::State &state) {
+    for (auto _ : state)
+        single_thread_rs();
+}
+BENCHMARK(bench_singleT_rs)->UseRealTime()->Unit(benchmark::kMillisecond);
+
 
 // Run the benchmark
 BENCHMARK_MAIN();
@@ -293,8 +341,8 @@ BENCHMARK_MAIN();
 int main() {
     std::cout << "Hello, World!" << std::endl;
 
-    printf("Size of atomic<int>: %ull\n", sizeof(atomic<int>));
-    printf("Size of padded_atomic_int: %ull\n", sizeof(padded_atomic_int));
+    printf("Size of atomic<int>: %lu\n", sizeof(atomic<int>));
+    printf("Size of padded_atomic_int: %lu\n", sizeof(padded_atomic_int));
 
     // Sum
     atomic<int> sum;
@@ -320,7 +368,10 @@ int main() {
     various_thread();
 
     // Print
-    print();
+    //print();
+
+    // Calling rust library
+    print_hello();
 
     return 0;
 }
