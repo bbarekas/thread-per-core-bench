@@ -384,6 +384,11 @@ static void bench_multiT_arc_rs(benchmark::State &state) {
 }
 BENCHMARK(bench_multiT_arc_rs)->UseRealTime()->Unit(benchmark::kMillisecond);
 
+static void bench_thread_safe_rs(benchmark::State &state) {
+    for (auto _ : state)
+        thread_safe_rs(10);
+}
+BENCHMARK(bench_thread_safe_rs)->UseRealTime()->Unit(benchmark::kMillisecond);
 
 // Run the benchmark
 BENCHMARK_MAIN();

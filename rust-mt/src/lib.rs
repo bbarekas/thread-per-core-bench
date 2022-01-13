@@ -1,7 +1,14 @@
-use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::atomic::{AtomicU32, AtomicI32, Ordering};
 use std::thread;
 use std::sync::Arc;
 
+struct ThreadSafeCounter {
+    count: AtomicI32,
+}
+
+impl ThreadSafeCounter {
+    fn increment(&self) { self.count.fetch_add(1, Ordering::SeqCst); }
+}
 
 #[no_mangle]
 pub extern "C" fn print_hello() {
@@ -109,3 +116,19 @@ pub extern "C" fn multi_thread_arc_rs() {
 
 }
 
+//
+#[no_mangle]
+pub extern "C" fn thread_safe_rs(n: i32) {
+    //
+    let counter = Arc::new(ThreadSafeCounter { count: AtomicI32::new(0) });
+    let mut threads = Vec::new();
+    for _ in 0..n {
+        let counter1 = Arc::clone(&counter);
+
+        threads.push(thread::spawn(move || {
+            counter1.increment();
+        }));
+    }
+    for thread in threads { thread.join(); }
+    //println!("{}", counter.count.load(Ordering::SeqCst));
+}

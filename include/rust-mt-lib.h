@@ -13,6 +13,7 @@ void print_hello();
 void single_thread_rs();
 void multi_thread_rs();
 void multi_thread_arc_rs();
+void thread_safe_rs(int n);
 
 #ifdef __cplusplus
 }
