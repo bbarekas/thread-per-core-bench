@@ -79,15 +79,22 @@ pub extern "C" fn multi_thread_arc_rs() {
     // Update 4 variables on different threads.
     let t1 = thread::spawn(move || {
         update(&a);
+        assert_eq!(a.load(Ordering::SeqCst), 10000000);
     });
+
     let t2 = thread::spawn(move || {
         update(&b);
+        assert_eq!(b.load(Ordering::SeqCst), 10000000);
     });
+
     let t3 = thread::spawn(move || {
         update(&c);
+        assert_eq!(c.load(Ordering::SeqCst), 10000000);
     });
+
     let t4 = thread::spawn(move || {
         update(&d);
+        assert_eq!(d.load(Ordering::SeqCst), 10000000);
     });
 
     t1.join().unwrap();
@@ -95,10 +102,10 @@ pub extern "C" fn multi_thread_arc_rs() {
     t3.join().unwrap();
     t4.join().unwrap();
 
-    assert_eq!(a.load(Ordering::SeqCst), 10000000);
-    assert_eq!(b.load(Ordering::SeqCst), 10000000);
-    assert_eq!(c.load(Ordering::SeqCst), 10000000);
-    assert_eq!(d.load(Ordering::SeqCst), 10000000);
+    //assert_eq!(a.load(Ordering::SeqCst), 10000000);
+    //assert_eq!(b.load(Ordering::SeqCst), 10000000);
+    //assert_eq!(c.load(Ordering::SeqCst), 10000000);
+    //assert_eq!(d.load(Ordering::SeqCst), 10000000);
 
 }
 

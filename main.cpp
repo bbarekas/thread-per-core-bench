@@ -2,6 +2,7 @@
 #include <thread>
 #include <atomic>
 #include <benchmark/benchmark.h>
+#include <assert.h>
 #include "rust-mt-lib.h"
 
 
@@ -234,6 +235,37 @@ void percore_scheduling() {
         pthread_join(threads[t], &status);
 }
 
+// A very simple thread-safe type.
+class ThreadSafeCounter {
+public:
+    ThreadSafeCounter() : counter_(0) {}
+    void Increment() { counter_.fetch_add(1); }
+    int GetCount() const { return counter_; }
+
+private:
+    std::atomic_int32_t counter_;
+};
+
+//
+int thread_safe_class(const int n) {
+    ThreadSafeCounter counter;
+    std::vector<std::thread> threads;
+
+    // Spawn `n` threads that all share a single counter.
+    for (int i = 0; i < n; i++) {
+        threads.push_back(std::thread([&counter] {
+            // Unsynchronized call of a non-const method.
+            // Only safe because the type is thread-safe.
+            counter.Increment();
+        }));
+    }
+    for (auto& thread : threads) { thread.join(); }
+
+    // Check correctness.
+    assert(counter.GetCount() == n);
+    return 0;
+}
+
 //
 void various_thread() {
 
@@ -318,6 +350,13 @@ static void bench_multiT_percore(benchmark::State &state) {
         percore_scheduling();
 }
 BENCHMARK(bench_multiT_percore)->UseRealTime()->Unit(benchmark::kMillisecond);
+
+static void bench_thread_safe(benchmark::State &state) {
+    for (auto _ : state)
+        thread_safe_class(10);
+}
+BENCHMARK(bench_thread_safe)->UseRealTime()->Unit(benchmark::kMillisecond);
+
 
 // Rust
 

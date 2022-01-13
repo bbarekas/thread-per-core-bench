@@ -18,6 +18,5 @@ find_package(Threads REQUIRED)
 
 find_package(benchmark REQUIRED)
 
-
 target_link_libraries(multi_thread PRIVATE rust-mt-lib dl Threads::Threads benchmark::benchmark)
 
